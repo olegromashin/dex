@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./Erc20.sol";
 import "./Pair.sol";
 
 contract TokenTokenPair is Pair {

@@ -20,3 +20,5 @@ To run deploy script:
 3. Rewise naming.
 
 4. Refactoring.
+
+5. Use abstract contracts to avoid logic repetition.
