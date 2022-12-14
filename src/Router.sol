@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "./Factory.sol";
-import "./Pair.sol";
+import "./interfaces/Pair.sol";
 
 contract Router {
     Factory internal factoryContract;
