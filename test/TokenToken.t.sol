@@ -3,20 +3,20 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "../src/TokenToken.sol";
-import "../src/Erc20.sol";
-import "../src/Erc20Eqt.sol";
-import "../src/Erc20Rom.sol";
+import "../src/ERC20WithMinter.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
 
 contract TokenTokenTest is Test {
-    Pair public pair;
-    RomToken public token1;
-    EqtToken public token2;
+    TokenTokenPair public pair;
+    ERC20WithMinter public token1;
+    ERC20WithMinter public token2;
 
     function setUp() external {
-        token1 = new RomToken();
-        token1.mint(2000, address(this));
-        token2 = new EqtToken();
-        token2.mint(2000, address(this));
+        token1 = new ERC20WithMinter("First Token", "FST");
+        token1.mint(address(this), 2000);
+        token2 = new ERC20WithMinter("Second Token", "SND");
+        token2.mint(address(this), 2000);
         pair = new TokenTokenPair(address(token1), address(token2));
     }
 

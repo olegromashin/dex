@@ -2,54 +2,17 @@
 pragma solidity ^0.8.13;
 
 import "./EthPair.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract TokenTokenPair is EthPair {
-    Erc20 public override token;
+contract TokenTokenPair is EthPair, ERC20 {
+    ERC20 public override token;
     uint256 lastTransactionEthBalance = 0;
     uint256 lastTransactionTokenBalance = 0;
-    mapping(address => uint256) public poolTokenBalances;
-    mapping(address => mapping (address => uint256)) allowed;
-    uint256 public poolTokenTotalSupply = 0;
     uint256 public constant feeRate = 30; // 0.3% 
     uint256 internal constant feeDecimals = 10000;
 
-    event Approval(address indexed from, address indexed spender, uint amount);
-    event Transfer(address indexed from, address indexed to, uint amount);
-
-    constructor(address tokenAddress) {
-        token = Erc20(tokenAddress);
-    }
-
-    function balanceOf(address tokenOwner) public view override returns(uint256) {
-        return poolTokenBalances[tokenOwner];
-    }
-
-    function transfer(address to, uint256 amount) public override returns (bool) {
-        uint256 senderBalance = poolTokenBalances[msg.sender];
-        if (senderBalance < amount)
-            return false;
-        poolTokenBalances[msg.sender] -= amount;
-        poolTokenBalances[to] += amount;
-        emit Transfer(msg.sender, to, amount);
-        return true;
-    }
-
-    function approve(address spender, uint256 amount) public override returns (bool) {
-        if (poolTokenBalances[msg.sender] < amount)
-            return false;
-        allowed[msg.sender][spender] = amount;
-        emit Approval(msg.sender, spender, amount);
-        return true;
-    }
-
-    function transferFrom(address from, address spender, uint256 amount) public override returns (bool) {
-        if (poolTokenBalances[from] < amount || allowed[from][spender] < amount)
-            return false;
-        allowed[from][spender] -= amount;
-        poolTokenBalances[msg.sender] -= amount;
-        poolTokenBalances[spender] += amount;
-        emit Transfer(msg.sender, spender, amount);
-        return true;
+    constructor(address tokenAddress) ERC20("EthTokenPair", "ETP") {
+        token = ERC20(tokenAddress);
     }
 
     function ethBalance() public view returns (uint256) {
@@ -128,8 +91,7 @@ contract TokenTokenPair is EthPair {
                     outputPoolToken = sqrt(ethDepositAmount * tokenDepositAmount);
                 }
             }
-            poolTokenBalances[depositor] += outputPoolToken;
-            poolTokenTotalSupply += outputPoolToken;
+            _mint(depositor, outputPoolToken);
         }
         lastTransactionEthBalance = ethBalance();
         lastTransactionTokenBalance = tokenBalance();
@@ -140,16 +102,14 @@ contract TokenTokenPair is EthPair {
         uint256 tokenDepositAmount = tokenBalance();
         require(ethDepositAmount > 0 && tokenDepositAmount > 0, "You have to send both tokens to make deposit.");
         uint256 outputPoolToken = sqrt(ethDepositAmount * tokenDepositAmount);
-        poolTokenBalances[depositor] += outputPoolToken;
-        poolTokenTotalSupply += outputPoolToken;
+        _mint(depositor, outputPoolToken);
     }
 
     function withdrawDeposit() external {
-        require(poolTokenBalances[msg.sender] > 0, "You don't have pool tokens to withdraw.");
-        uint ethWithdrawAmount = poolTokenBalances[msg.sender] * poolTokenBalances[msg.sender] / tokenBalance();
-        uint tokenWithdrawAmount = poolTokenBalances[msg.sender] * poolTokenBalances[msg.sender] / ethBalance();
-        poolTokenTotalSupply -= poolTokenBalances[msg.sender];
-        poolTokenBalances[msg.sender] = 0;
+        require(balanceOf(msg.sender) > 0, "You don't have pool tokens to withdraw.");
+        uint ethWithdrawAmount = balanceOf(msg.sender) * balanceOf(msg.sender) / tokenBalance();
+        uint tokenWithdrawAmount = balanceOf(msg.sender) * balanceOf(msg.sender) / ethBalance();
+        _burn(msg.sender, balanceOf(msg.sender));
         (bool sent, ) = msg.sender.call{value: ethWithdrawAmount}("");
         require(sent, "Failed to send Ether");
         token.transfer(msg.sender, tokenWithdrawAmount);
